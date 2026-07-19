@@ -3,6 +3,7 @@ import { GenderEnum, ProviderEnum, RoleEnum } from "../enums";
 export interface IUser {
   firstName: String;
   lastName: string;
+  slug?:string;
   username?: string;
   email: string;
   password: string;
@@ -21,4 +22,6 @@ export interface IUser {
 
   createdAt?: Date;
   updatedAt?: Date;
+  deletedAt?: Date;
+  restoredAt?: Date;
 }

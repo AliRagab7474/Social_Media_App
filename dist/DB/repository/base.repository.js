@@ -7,75 +7,55 @@ class DatabaseRepository {
         this.model = model;
     }
     async create({ data, options, }) {
-        return (await this.model.create(data, options));
+        return await this.model.create(data, options);
     }
-    async find({ filter, projection, options, }) {
-        let doc = this.model.find(filter, projection, options);
-        if (options?.populate) {
-            doc = doc.populate(options.populate);
-        }
-        if (options?.lean) {
-            return (await doc.lean());
-        }
-        return (await doc);
+    async createOne({ data, options, }) {
+        const [doc] = (await this.create({ data: [data], options })) || [];
+        return doc;
     }
     async findOne({ filter, projection, options, }) {
-        let doc = this.model.findOne(filter, projection, options);
-        if (options?.populate) {
-            doc = doc.populate(options.populate);
-        }
+        const doc = this.model.findOne(filter, projection);
         if (options?.lean) {
-            return (await doc.lean());
+            doc.lean(options.lean);
         }
-        return (await doc);
-    }
-    async update({ filter, update, options, many = false, }) {
-        if (many) {
-            return (await this.model.updateMany(filter, update, options));
-        }
-        return (await this.model.updateOne(filter, update, options));
-    }
-    async delete({ filter, options, many = false, }) {
-        if (many) {
-            return await this.model.deleteMany(filter, options);
-        }
-        return await this.model.deleteOne(filter, options);
-    }
-    async findById({ id, projection, options, }) {
-        let doc = this.model.findById(id, projection, options);
         if (options?.populate) {
-            doc = doc.populate(options.populate);
+            doc.populate(options.populate);
         }
-        if (options?.lean) {
-            return (await doc.lean());
-        }
-        return (await doc);
+        return await doc.exec();
     }
-    async findOneAndUpdate({ filter, update, options, }) {
-        let doc = this.model.findOneAndUpdate(filter, update, options);
-        if (options?.populate) {
-            doc = doc.populate(options.populate);
-        }
+    async findById({ _id, projection, options, }) {
+        const doc = this.model.findById(_id, projection);
         if (options?.lean) {
-            return (await doc.lean());
+            doc.lean(options.lean);
         }
-        return (await doc);
+        if (options?.populate) {
+            doc.populate(options.populate);
+        }
+        return doc.exec();
     }
-    async findOneAndDelete({ filter, options, }) {
-        let doc = this.model.findOneAndDelete(filter, options);
-        if (options?.populate) {
-            doc = doc.populate(options.populate);
-        }
-        if (options?.lean) {
-            return (await doc.lean());
-        }
-        return (await doc);
+    async updateOne({ filter, update, options, }) {
+        return await this.model.updateOne(filter, update, options);
     }
     async updateMany({ filter, update, options, }) {
-        return (await this.model.updateMany(filter, update, options));
+        return await this.model.updateMany(filter, update, options);
+    }
+    async findOneAndUpdate({ filter, update, options, }) {
+        return await this.model.findOneAndUpdate(filter, update);
+    }
+    async findByIdAndUpdate({ _id, update, options, }) {
+        return await this.model.findByIdAndUpdate(_id, update);
+    }
+    async deleteOne({ filter, options, }) {
+        return await this.model.deleteOne(filter, options);
     }
     async deleteMany({ filter, options, }) {
         return await this.model.deleteMany(filter, options);
+    }
+    async findOneAndDelete({ filter, }) {
+        return await this.model.findOneAndDelete(filter);
+    }
+    async findByIdAndDelete({ _id, }) {
+        return await this.model.findByIdAndDelete(_id);
     }
 }
 exports.DatabaseRepository = DatabaseRepository;

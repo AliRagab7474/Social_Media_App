@@ -6,6 +6,7 @@ config({path:resolve(`./.env.${process.env.NODE_ENV}`)})
 export const PORT = process.env.PORT
 export const DB_URI = process.env.DB_URI as string
 
+
 export const SALT_ROUND = parseInt(process.env.SALT_ROUND ?? '10')
 export const ENC_IV_LENGTH = parseInt(process.env.ENC_IV_LENGTH ?? '16')
 export const ENC_KEY = process.env.ENC_KEY as string
@@ -31,3 +32,9 @@ export const FACEBOOK = process.env.FACEBOOK as string
 export const INSTAGRAM = process.env.INSTAGRAM as string
 export const TWITTER = process.env.TWITTER as string
 export const ORIGINS = (process.env.ORIGINS?.split(",") || []) as string[]
+
+export const AWS_REGION = process.env.AWS_REGION as string
+export const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME as string
+export const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID as string
+export const AWS_SECRET_KEY_ID = process.env.AWS_SECRET_KEY_ID as string
+export const AWS_EXPIRES_IN = parseInt(process.env.AWS_EXPIRES_IN as string || "120")

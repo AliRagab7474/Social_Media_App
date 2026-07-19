@@ -12,7 +12,7 @@ import * as validators from "./auth.validation";
 import { validation } from "../../middleware/validation.middleware";
 const router = Router();
 
-router.post("/login",validation(validators.loginSchema),async (req: Request, res: Response, next: NextFunction) => {
+router.get("/login",validation(validators.loginSchema),async (req: Request, res: Response, next: NextFunction) => {
   const result = await authService.login(req.body,`${req.protocol}://${req.host}`);
   return SuccessResponse<LoginResponse>({ res, data: result });
 });

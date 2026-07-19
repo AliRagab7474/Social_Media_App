@@ -42,7 +42,7 @@ const success_response_1 = require("../../common/utils/response/success.response
 const validators = __importStar(require("./auth.validation"));
 const validation_middleware_1 = require("../../middleware/validation.middleware");
 const router = (0, express_1.Router)();
-router.post("/login", (0, validation_middleware_1.validation)(validators.loginSchema), async (req, res, next) => {
+router.get("/login", (0, validation_middleware_1.validation)(validators.loginSchema), async (req, res, next) => {
     const result = await auth_service_1.default.login(req.body, `${req.protocol}://${req.host}`);
     return (0, success_response_1.SuccessResponse)({ res, data: result });
 });

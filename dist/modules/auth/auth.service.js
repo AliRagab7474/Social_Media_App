@@ -67,33 +67,35 @@ class AuthenticationService {
         email_1.emailEvent.emit("SendEmail", async () => {
             await (0, email_1.sendEmail)({
                 to: email,
-                subject: subject,
+                subject: title,
                 html: (0, email_1.emailTemplate)({ code, title }),
             });
             await this.redis.incr(this.redis.maxTrialKey({ email, subject }));
         });
     }
     async signup(data) {
-        const { email, password, phone } = data;
+        const { email } = data;
         const checkUserExist = await this.userRepository.findOne({
             filter: { email },
-            projection: "email",
         });
         if (checkUserExist) {
             throw new exceptions_1.ConflictException("Email Exists");
         }
-        data.password = await (0, security_1.generateHash)({ plainText: password });
-        data.phone = await (0, security_1.Encrypt)({ plainText: phone });
-        const result = await this.userRepository.create({ data: data });
-        if (!result) {
-            throw new exceptions_1.BadRequestException("fail");
+        const user = await this.userRepository.createOne({ data: data });
+        if (!user) {
+            throw new exceptions_1.BadRequestException("fail to create document");
         }
+        await (0, email_1.sendEmail)({
+            to: email,
+            subject: "confirm email",
+            html: (0, email_1.emailTemplate)({ code: 546545, title: "confirm email" }),
+        });
         await this.sendEmailOTP({
             email: email,
             subject: enums_1.emailEnum.CONFIRM_EMAIL,
             title: "Verify_Email",
         });
-        return result.toJSON();
+        return user.toJSON();
     }
     async confirmEmail({ email, otp }) {
         const account = await this.userRepository.findOne({

@@ -16,7 +16,6 @@ import { emailEvent, emailTemplate, sendEmail } from "../../common/utils/email";
 import {
   compareHash,
   createNumberOtp,
-  Encrypt,
   generateHash,
 } from "../../common/security";
 import {
@@ -116,7 +115,7 @@ export class AuthenticationService {
     emailEvent.emit("SendEmail", async () => {
       await sendEmail({
         to: email,
-        subject: subject,
+        subject: title,
         html: emailTemplate({ code, title }),
       });
 
@@ -125,27 +124,23 @@ export class AuthenticationService {
   }
 
   public async signup(data: SignupDto): Promise<IUser> {
-    const { email, password, phone } = data;
+    const { email } = data;
     const checkUserExist = await this.userRepository.findOne({
       filter: { email },
-      projection: "email",
     });
+
     if (checkUserExist) {
       throw new ConflictException("Email Exists");
     }
-
-    data.password = await generateHash({ plainText: password });
-    data.phone = await Encrypt({ plainText: phone });
-
-    const result = await this.userRepository.create({ data: data });
-    if (!result) {
-      throw new BadRequestException("fail");
+    const user = await this.userRepository.createOne({ data: data });
+    if (!user) {
+      throw new BadRequestException("fail to create document");
     }
-    // await sendEmail({
-    //   to: email,
-    //   subject: "confirm email",
-    //   html: emailTemplate({ code: 546545, title: "confirm email" }),
-    // });
+    await sendEmail({
+      to: email,
+      subject: "confirm email",
+      html: emailTemplate({ code: 546545, title: "confirm email" }),
+    });
 
     await this.sendEmailOTP({
       email: email,
@@ -153,7 +148,7 @@ export class AuthenticationService {
       title: "Verify_Email",
     });
 
-    return result.toJSON();
+    return user.toJSON();
   }
 
   public async confirmEmail({ email, otp }: ConfirmEmailDto) {
