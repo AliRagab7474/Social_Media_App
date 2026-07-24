@@ -14,7 +14,7 @@ import {
   UpdateResult,
   UpdateWithAggregationPipeline,
 } from "mongoose";
-import { IUser } from "../../common/interfaces";
+import { IPaginate } from "../../common/interfaces";
 import { UpdateOptions } from "mongodb";
 
 export abstract class DatabaseRepository<TRawDoc> {
@@ -65,8 +65,8 @@ export abstract class DatabaseRepository<TRawDoc> {
   }: {
     filter?: QueryFilter<TRawDoc>;
     projection?: ProjectionType<TRawDoc> | null | undefined;
-    options?: (QueryOptions<TRawDoc> & { lean: false }) | null | undefined;
-  }): Promise<HydratedDocument<IUser> | null>;
+    options?: (QueryOptions<TRawDoc> & { lean?: false }) | null | undefined;
+  }): Promise<HydratedDocument<TRawDoc> | null>;
 
   async findOne({
     filter,
@@ -75,8 +75,8 @@ export abstract class DatabaseRepository<TRawDoc> {
   }: {
     filter?: QueryFilter<TRawDoc>;
     projection?: ProjectionType<TRawDoc> | null | undefined;
-    options?: (QueryOptions<TRawDoc> & { lean: true }) | null | undefined;
-  }): Promise<null | FlattenMaps<IUser>>;
+    options?: (QueryOptions<TRawDoc> & { lean?: true }) | null | undefined;
+  }): Promise<null | FlattenMaps<TRawDoc>>;
 
   async findOne({
     filter,
@@ -87,16 +87,68 @@ export abstract class DatabaseRepository<TRawDoc> {
     projection?: ProjectionType<TRawDoc> | null | undefined;
     options?: QueryOptions<TRawDoc> | null | undefined;
   }): Promise<any> {
-    const doc =   this.model.findOne(filter, projection);
+    const doc = this.model.findOne(filter, projection);
 
     if (options?.lean) {
-      doc.lean(options.lean) as any
+      doc.lean(options.lean) as any;
     }
     if (options?.populate) {
       doc.populate(options.populate as PopulateOptions[]) as any;
     }
-    return  await doc.exec();
+    return await doc.exec();
   }
+
+
+async find({
+    filter,
+    projection,
+    options
+}: {
+    filter?: QueryFilter<TRawDoc>,
+    projection?: ProjectionType<TRawDoc> | null | undefined,
+    options?: QueryOptions<TRawDoc> | null | undefined
+}): Promise<HydratedDocument<TRawDoc>[]> {
+    const doc = this.model.find(filter, projection)
+    if (options?.populate) doc.populate(options.populate as PopulateOptions[])
+    if (options?.skip) doc.skip(options.skip)
+    if (options?.limit) doc.limit(options.limit)
+    // if (options?.lean) doc.lean(options.lean)
+    return await doc.exec()
+}
+
+async paginate({
+    filter,
+    projection,
+    options = {},
+    page = 0,
+    size = 5
+}: {
+    filter?: QueryFilter<TRawDoc>,
+    projection?: ProjectionType<TRawDoc> | null | undefined,
+    options?: QueryOptions<TRawDoc>,
+    page?: number | string | undefined,
+    size?: number | string | undefined,
+}): Promise<IPaginate<TRawDoc>> {
+
+    let count: number = -1
+    if (Number(page) > 0) {
+        page = parseInt(page as string);
+        size = parseInt(size as string);
+        options.skip = (page - 1) * size;
+        options.limit = size;
+        count = await this.model.countDocuments({ filter })
+    }
+
+    const docs = await this.find({filter:filter||{},projection,options})
+
+return {
+    docs,
+    currentPage: Number(page) > 0 ? page : undefined,
+    size: Number(page) > 0 ? size : undefined,
+    pages: Number(page) > 0 ? Math.ceil(count / parseInt(size as string)) : undefined,
+}
+}
+
 
   async findById({
     _id,
@@ -106,7 +158,7 @@ export abstract class DatabaseRepository<TRawDoc> {
     _id?: Types.ObjectId;
     projection?: ProjectionType<TRawDoc> | null | undefined;
     options?: (QueryOptions<TRawDoc> & { lean: false }) | null | undefined;
-  }): Promise<HydratedDocument<IUser> | null>;
+  }): Promise<HydratedDocument<TRawDoc> | null>;
 
   async findById({
     _id,
@@ -116,7 +168,7 @@ export abstract class DatabaseRepository<TRawDoc> {
     _id?: Types.ObjectId;
     projection?: ProjectionType<TRawDoc> | null | undefined;
     options?: (QueryOptions<TRawDoc> & { lean: true }) | null | undefined;
-  }): Promise<null | FlattenMaps<IUser>>;
+  }): Promise<null | FlattenMaps<TRawDoc>>;
 
   async findById({
     _id,
@@ -172,7 +224,11 @@ export abstract class DatabaseRepository<TRawDoc> {
     update: UpdateQuery<TRawDoc>;
     options?: QueryOptions<TRawDoc>;
   }): Promise<HydratedDocument<TRawDoc> | null> {
-    return await this.model.findOneAndUpdate(filter, update);
+    if (Array.isArray(update)) {
+      update.push({$set:{__v:{$add:["$__v",1]}}})
+      return this.model.findOneAndUpdate(filter,update,{...options,updatePipeline:true})
+    }
+    return await this.model.findOneAndUpdate(filter, update,{...options,$incr:{__v:1}});
   }
 
   async findByIdAndUpdate({
@@ -220,9 +276,7 @@ export abstract class DatabaseRepository<TRawDoc> {
     _id,
   }: {
     _id?: Types.ObjectId;
-   
   }): Promise<HydratedDocument<TRawDoc> | null> {
     return await this.model.findByIdAndDelete(_id);
   }
-
 }

@@ -14,6 +14,8 @@ const services_1 = require("./common/services");
 const node_stream_1 = require("node:stream");
 const node_util_1 = require("node:util");
 const response_1 = require("./common/utils/response");
+const post_1 = require("./modules/post");
+const comment_1 = require("./modules/comment");
 const s3WriteStream = (0, node_util_1.promisify)(node_stream_1.pipeline);
 const bootstrap = async () => {
     const app = (0, express_1.default)();
@@ -25,6 +27,9 @@ const bootstrap = async () => {
     });
     app.use("/auth", auth_1.authRouter);
     app.use("/user", user_1.UserRouter);
+    app.use("/post/:postId/comment", comment_1.CommentRouter);
+    app.use("/:postId/comment", comment_1.CommentRouter);
+    app.use("/post", post_1.PostRouter);
     app.get("/uploads/*path", async (req, res, next) => {
         const { download, fileName } = req.query;
         const { path } = req.params;

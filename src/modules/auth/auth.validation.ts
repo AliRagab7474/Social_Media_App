@@ -16,6 +16,7 @@ export const loginSchema = {
   body:resendConfirmEmail.body.safeExtend({
     email: generalValidationFields.email,
     password: generalValidationFields.password,
+    FCM:z.string().optional()
   }),
 };
 

@@ -23,6 +23,33 @@ class DatabaseRepository {
         }
         return await doc.exec();
     }
+    async find({ filter, projection, options }) {
+        const doc = this.model.find(filter, projection);
+        if (options?.populate)
+            doc.populate(options.populate);
+        if (options?.skip)
+            doc.skip(options.skip);
+        if (options?.limit)
+            doc.limit(options.limit);
+        return await doc.exec();
+    }
+    async paginate({ filter, projection, options = {}, page = 0, size = 5 }) {
+        let count = -1;
+        if (Number(page) > 0) {
+            page = parseInt(page);
+            size = parseInt(size);
+            options.skip = (page - 1) * size;
+            options.limit = size;
+            count = await this.model.countDocuments({ filter });
+        }
+        const docs = await this.find({ filter: filter || {}, projection, options });
+        return {
+            docs,
+            currentPage: Number(page) > 0 ? page : undefined,
+            size: Number(page) > 0 ? size : undefined,
+            pages: Number(page) > 0 ? Math.ceil(count / parseInt(size)) : undefined,
+        };
+    }
     async findById({ _id, projection, options, }) {
         const doc = this.model.findById(_id, projection);
         if (options?.lean) {
@@ -40,7 +67,11 @@ class DatabaseRepository {
         return await this.model.updateMany(filter, update, options);
     }
     async findOneAndUpdate({ filter, update, options, }) {
-        return await this.model.findOneAndUpdate(filter, update);
+        if (Array.isArray(update)) {
+            update.push({ $set: { __v: { $add: ["$__v", 1] } } });
+            return this.model.findOneAndUpdate(filter, update, { ...options, updatePipeline: true });
+        }
+        return await this.model.findOneAndUpdate(filter, update, { ...options, $incr: { __v: 1 } });
     }
     async findByIdAndUpdate({ _id, update, options, }) {
         return await this.model.findByIdAndUpdate(_id, update);

@@ -11,13 +11,14 @@ class AuthenticationService {
     userRepository;
     redis;
     tokenService;
+    notify;
     constructor() {
         this.userRepository = new user_repository_1.UserRepository();
         this.redis = services_1.redisService;
         this.tokenService = new services_1.TokenService();
+        this.notify = new services_1.NotificationService();
     }
-    async login(data, issuer) {
-        const { email, password } = data;
+    async login({ email, password, FCM }, issuer) {
         const user = await this.userRepository.findOne({
             filter: {
                 email,
@@ -30,6 +31,13 @@ class AuthenticationService {
         }
         if (!user.confirmEmail) {
             throw new exceptions_1.BadRequestException("confirm your email before login");
+        }
+        if (FCM) {
+            await this.redis.addFCM(user._id, FCM);
+            const tokens = await this.redis.getFCMs(user._id);
+            if (tokens?.length) {
+                await this.notify.sendNotifications({ tokens, data: { title: "New Login", body: `new login at ${new Date()}` } });
+            }
         }
         const verifyPassword = await (0, security_1.compareHash)({
             plainText: password,
@@ -85,15 +93,10 @@ class AuthenticationService {
         if (!user) {
             throw new exceptions_1.BadRequestException("fail to create document");
         }
-        await (0, email_1.sendEmail)({
-            to: email,
-            subject: "confirm email",
-            html: (0, email_1.emailTemplate)({ code: 546545, title: "confirm email" }),
-        });
         await this.sendEmailOTP({
             email: email,
             subject: enums_1.emailEnum.CONFIRM_EMAIL,
-            title: "Verify_Email",
+            title: "CONFIRM_EMAIL",
         });
         return user.toJSON();
     }

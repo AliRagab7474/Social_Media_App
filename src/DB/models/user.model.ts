@@ -1,4 +1,4 @@
-import { HydratedDocument, model, Schema } from "mongoose";
+import { HydratedDocument, model, Schema, Types } from "mongoose";
 import { GenderEnum, ProviderEnum, RoleEnum } from "../../common/enums";
 import { IUser } from "../../common/interfaces";
 import { Encrypt, generateHash } from "../../common/security";
@@ -19,6 +19,8 @@ const userSchema = new Schema<IUser>(
     phone: { type: String },
     profilePicture: { type: String },
     profileCoverPictures: { type: [String] },
+
+    friends:[{type:Types.ObjectId}],
 
     gender: { type: Number, enum: GenderEnum, default: GenderEnum.MALE },
     role: { type: Number, enum: RoleEnum, default: RoleEnum.USER },
@@ -103,3 +105,4 @@ userSchema.pre(["findOneAndDelete", "deleteOne"], function () {
 });
 
 export const UserModel = model<IUser>("User", userSchema);
+UserModel.syncIndexes()

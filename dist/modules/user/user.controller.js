@@ -31,6 +31,10 @@ router.get("/profile", (0, middleware_1.authentication)(), (0, middleware_1.auth
     const result = await user_service_1.default.profile(req.user);
     return (0, response_1.SuccessResponse)({ res, data: result });
 });
+router.delete("/", (0, middleware_1.authentication)(), (0, middleware_1.authorization)(user_authorization_1.endPoint.profile), async (req, res, next) => {
+    const result = await user_service_1.default.deleteProfile(req.user);
+    return (0, response_1.SuccessResponse)({ res, data: result });
+});
 router.post("/logout", (0, middleware_1.authentication)(), async (req, res, next) => {
     const status = await user_service_1.default.logout(req.body, req.user, req.decoded);
     return (0, response_1.SuccessResponse)({ res, status: status, message: "done logout" });

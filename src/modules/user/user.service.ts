@@ -8,22 +8,34 @@ import {
   S3Service,
   TokenService,
 } from "../../common/services";
-import { ConflictException } from "../../common/utils/exceptions";
+import { ConflictException, NotFoundException } from "../../common/utils/exceptions";
 import { uploadApproachEnum } from "../../common/enums";
+import { UserRepository } from "../../DB/repository";
 
 class UserService {
   private readonly redis: RedisService;
+  private readonly userRepository: UserRepository;
   private readonly tokenService: TokenService;
   private readonly s3: S3Service;
 
   constructor() {
     this.redis = redisService;
+    this.userRepository = new UserRepository;
     this.tokenService = new TokenService();
     this.s3 = new S3Service();
   }
 
   async profile(user: HydratedDocument<IUser>): Promise<IUser> {
     return user.toJSON();
+  }
+  async deleteProfile(user: HydratedDocument<IUser>) {
+   
+    const account = await this.userRepository.deleteOne({filter:{_id : user._id,force : true}})
+    if (!account.deletedCount) {
+      throw new NotFoundException("user not found")
+    }
+    await this.s3.deleteDir({prefix:`USERS/${user._id.toString()}`})
+    return account  
   }
 
 

@@ -50,6 +50,15 @@ router.get(
     return SuccessResponse({ res, data: result });
   },
 );
+router.delete(
+  "/",
+  authentication(),
+  authorization(endPoint.profile),
+  async (req: Request, res: Response, next: NextFunction) => {
+    const result = await userService.deleteProfile(req.user);
+    return SuccessResponse({ res, data: result });
+  },
+);
 
 router.post("/logout", authentication(), async (req, res, next) => {
   const status = await userService.logout(

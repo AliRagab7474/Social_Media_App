@@ -114,10 +114,22 @@ class S3Service {
             Bucket,
             Delete: {
                 Objects: Keys,
-                Quiet: false
-            }
+                Quiet: false,
+            },
         });
         return await this.client.send(command);
+    }
+    async listDir({ Bucket = config_1.AWS_BUCKET_NAME, prefix, }) {
+        const command = new client_s3_1.ListObjectsV2Command({
+            Bucket,
+            Prefix: `${config_1.APPLICATION_NAME}/${prefix}`,
+        });
+        return await this.client.send(command);
+    }
+    async deleteDir({ Bucket = config_1.AWS_BUCKET_NAME, prefix, }) {
+        const result = this.listDir({ Bucket, prefix });
+        const Keys = (await result).Contents?.map(ele => { return { Key: ele.Key }; });
+        return await this.deleteAssets({ Bucket, Keys });
     }
     async getAsset({ Bucket = config_1.AWS_BUCKET_NAME, Key, }) {
         const command = new client_s3_1.GetObjectCommand({
@@ -126,11 +138,13 @@ class S3Service {
         });
         return await this.client.send(command);
     }
-    async preSignedFetchLink({ Bucket = config_1.AWS_BUCKET_NAME, Key, expiresIn = config_1.AWS_EXPIRES_IN, download, fileName }) {
+    async preSignedFetchLink({ Bucket = config_1.AWS_BUCKET_NAME, Key, expiresIn = config_1.AWS_EXPIRES_IN, download, fileName, }) {
         const command = new client_s3_1.GetObjectCommand({
             Bucket,
             Key,
-            ResponseContentDisposition: download === "true" ? `attachment; filename="${fileName || Key.split("/").pop()}"` : undefined
+            ResponseContentDisposition: download === "true"
+                ? `attachment; filename="${fileName || Key.split("/").pop()}"`
+                : undefined,
         });
         const url = await (0, s3_request_presigner_1.getSignedUrl)(this.client, command, { expiresIn });
         return url;

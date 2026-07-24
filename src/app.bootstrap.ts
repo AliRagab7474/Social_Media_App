@@ -9,6 +9,8 @@ import { s3Service } from "./common/services";
 import { pipeline } from "node:stream";
 import { promisify } from "node:util";
 import { SuccessResponse } from "./common/utils/response";
+import { PostRouter } from "./modules/post";
+import { CommentRouter } from "./modules/comment";
 
 const s3WriteStream = promisify(pipeline);
 
@@ -36,6 +38,9 @@ const bootstrap = async () => {
 
   app.use("/auth", authRouter);
   app.use("/user", UserRouter);
+  app.use("/post/:postId/comment", CommentRouter);
+  app.use("/:postId/comment", CommentRouter);
+  app.use("/post", PostRouter);
   app.get(
     "/uploads/*path",
     async (

@@ -4,17 +4,28 @@ const security_enum_1 = require("../../common/enums/security.enum");
 const services_1 = require("../../common/services");
 const exceptions_1 = require("../../common/utils/exceptions");
 const enums_1 = require("../../common/enums");
+const repository_1 = require("../../DB/repository");
 class UserService {
     redis;
+    userRepository;
     tokenService;
     s3;
     constructor() {
         this.redis = services_1.redisService;
+        this.userRepository = new repository_1.UserRepository;
         this.tokenService = new services_1.TokenService();
         this.s3 = new services_1.S3Service();
     }
     async profile(user) {
         return user.toJSON();
+    }
+    async deleteProfile(user) {
+        const account = await this.userRepository.deleteOne({ filter: { _id: user._id, force: true } });
+        if (!account.deletedCount) {
+            throw new exceptions_1.NotFoundException("user not found");
+        }
+        await this.s3.deleteDir({ prefix: `USERS/${user._id.toString()}` });
+        return account;
     }
     async profileCoverImages(files, user) {
         const oldpics = user.profileCoverPictures;

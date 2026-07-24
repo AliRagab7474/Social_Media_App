@@ -126,6 +126,24 @@ class RedisService {
     Keys = async (baseKey) => {
         return await this.client.keys(`${baseKey}*`);
     };
+    FCM_key(userId) {
+        return `user:FCM:${userId.toString()}`;
+    }
+    async addFCM(userId, FCMToken) {
+        return await this.client.sAdd(this.FCM_key(userId), FCMToken);
+    }
+    async removeFCM(userId, FCMToken) {
+        return await this.client.sRem(this.FCM_key(userId), FCMToken);
+    }
+    async getFCMs(userId) {
+        return await this.client.sMembers(this.FCM_key(userId));
+    }
+    async hasFCMs(userId) {
+        return await this.client.sCard(this.FCM_key(userId));
+    }
+    async removeFCMUser(userId) {
+        return;
+    }
 }
 exports.RedisService = RedisService;
 exports.redisService = new RedisService();

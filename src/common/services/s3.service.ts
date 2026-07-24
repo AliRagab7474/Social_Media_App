@@ -6,6 +6,8 @@ import {
   DeleteObjectsCommandOutput,
   GetObjectCommand,
   GetObjectCommandOutput,
+  ListObjectsV2Command,
+  ListObjectsV2CommandOutput,
   ObjectCannedACL,
   PutObjectCommand,
   S3Client,
@@ -195,40 +197,64 @@ export class S3Service {
 
     return { url, key: command.input?.Key };
   }
-  
+
   async deleteAsset({
     Bucket = AWS_BUCKET_NAME,
     Key,
   }: {
     Bucket?: string;
     Key: string;
-  }):Promise<DeleteObjectCommandOutput> {
+  }): Promise<DeleteObjectCommandOutput> {
     const command = new DeleteObjectCommand({
       Bucket,
       Key,
     });
-    
+
     return await this.client.send(command);
   }
   async deleteAssets({
     Bucket = AWS_BUCKET_NAME,
     Keys,
   }: {
-    Bucket?: string,
-    Keys: {Key:string}[],
-  }):Promise<DeleteObjectsCommandOutput> {
+    Bucket?: string;
+    Keys: { Key: string }[];
+  }): Promise<DeleteObjectsCommandOutput> {
     const command = new DeleteObjectsCommand({
       Bucket,
-      Delete:{
-        Objects:Keys,
-        Quiet:false
-      }
+      Delete: {
+        Objects: Keys,
+        Quiet: false,
+      },
     });
-    
+
     return await this.client.send(command);
   }
 
+  async listDir({
+    Bucket = AWS_BUCKET_NAME,
+    prefix,
+  }: {
+    Bucket?: string;
+    prefix: string;
+  }): Promise<ListObjectsV2CommandOutput> {
+    const command = new ListObjectsV2Command({
+      Bucket,
+      Prefix: `${APPLICATION_NAME}/${prefix}`,
+    });
 
+    return await this.client.send(command);
+  }
+  async deleteDir({
+    Bucket = AWS_BUCKET_NAME,
+    prefix,
+  }: {
+    Bucket?: string;
+    prefix: string;
+  }): Promise<ListObjectsV2CommandOutput> {
+    const result = this.listDir({ Bucket, prefix });
+    const Keys = (await result).Contents?.map(ele=>{return {Key:ele.Key}}) as {Key:string}[]
+    return await this.deleteAssets({Bucket,Keys})
+  }
 
   async getAsset({
     Bucket = AWS_BUCKET_NAME,
@@ -236,38 +262,39 @@ export class S3Service {
   }: {
     Bucket?: string;
     Key: string;
-  }):Promise<GetObjectCommandOutput> {
+  }): Promise<GetObjectCommandOutput> {
     const command = new GetObjectCommand({
       Bucket,
       Key,
     });
-    
+
     return await this.client.send(command);
   }
-  
+
   async preSignedFetchLink({
     Bucket = AWS_BUCKET_NAME,
     Key,
     expiresIn = AWS_EXPIRES_IN,
     download,
-    fileName
+    fileName,
   }: {
     Bucket?: string;
     Key: string;
     expiresIn?: number;
-    download?:string,
-    fileName?:string
+    download?: string;
+    fileName?: string;
   }): Promise<string> {
     const command = new GetObjectCommand({
       Bucket,
       Key,
-       ResponseContentDisposition: download==="true"? `attachment; filename="${
-      fileName || Key.split("/").pop()
-    }"`:undefined
-  });
-    
+      ResponseContentDisposition:
+        download === "true"
+          ? `attachment; filename="${fileName || Key.split("/").pop()}"`
+          : undefined,
+    });
+
     const url = await getSignedUrl(this.client, command, { expiresIn });
-    return url
+    return url;
   }
 }
 
