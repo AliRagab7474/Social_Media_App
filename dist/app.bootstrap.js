@@ -16,12 +16,29 @@ const node_util_1 = require("node:util");
 const response_1 = require("./common/utils/response");
 const post_1 = require("./modules/post");
 const comment_1 = require("./modules/comment");
+const graphql_1 = require("graphql");
+const express_2 = require("graphql-http/lib/use/express");
 const s3WriteStream = (0, node_util_1.promisify)(node_stream_1.pipeline);
 const bootstrap = async () => {
     const app = (0, express_1.default)();
     app.use(express_1.default.json());
     await (0, connection_db_1.default)();
     await redis_service_1.redisService.connect();
+    const schema = new graphql_1.GraphQLSchema({
+        query: new graphql_1.GraphQLObjectType({
+            name: "testQuery",
+            description: "testing",
+            fields: {
+                sayHi: {
+                    type: graphql_1.GraphQLString,
+                    resolve: () => {
+                        return "hello world";
+                    }
+                }
+            }
+        })
+    });
+    app.all("/graphql", (0, express_2.createHandler)({ schema }));
     app.get("/", (req, res, next) => {
         res.status(404).json({ message: "landing page" });
     });

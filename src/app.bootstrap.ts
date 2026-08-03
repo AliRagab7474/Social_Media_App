@@ -11,10 +11,12 @@ import { promisify } from "node:util";
 import { SuccessResponse } from "./common/utils/response";
 import { PostRouter } from "./modules/post";
 import { CommentRouter } from "./modules/comment";
+import { createHandler } from "graphql-http/lib/use/express";
+import { schema } from "./modules/graphql";
 
 const s3WriteStream = promisify(pipeline);
 
-const bootstrap = async () => {
+const bootstrap = async () => { 
   const app = express();
 
   app.use(express.json());
@@ -22,6 +24,9 @@ const bootstrap = async () => {
   //connectionDB
   await connectionDB();
   await redisService.connect();
+
+
+  app.all("/graphql",createHandler({schema: schema}))
 
   app.get(
     "/",
